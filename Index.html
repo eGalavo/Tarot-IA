@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tarot IA 🔮</title>
+
+  <style>
+    :root { color-scheme: dark; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      padding: 28px 16px;
+      background: radial-gradient(circle, #0b0b1a, #000);
+      color:#fff;
+      font-family: Arial, sans-serif;
+      text-align:center;
+    }
+
+    .app{ width:min(980px, 100%); }
+
+    h1{
+      margin: 0 0 14px;
+      letter-spacing:.5px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+    }
+
+    .panel{
+      display:inline-block;
+      padding:16px;
+      border-radius:16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 18px 40px rgba(0,0,0,.35);
+      margin-bottom: 18px;
+      text-align:left;
+      width:min(760px, 100%);
+      box-sizing:border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::after{
+      content:"";
+      position:absolute;
+      inset:-60px -60px auto auto;
+      width:180px;
+      height:180px;
+      background: radial-gradient(circle, rgba(179,0,255,.22), transparent 60%);
+      filter: blur(2px);
+      pointer-events:none;
+    }
+
+    label{
+      display:block;
+      font-weight:700;
+      margin: 8px 0 6px;
+      opacity:.95;
+    }
+
+    select{
+      width: 100%;
+      padding:10px 12px;
+      font-size:16px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.22);
+      background: #1a1030;
+      color:#fff;
+      outline:none;
+      box-sizing:border-box;
+    }
+    select option{ background:#1a1030; color:#fff; }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:flex-end;
+    }
+    .row > div{ flex: 1 1 240px; }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    button{
+      padding: 12px 18px;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      color:#fff;
+      background: linear-gradient(135deg, #7a00ff, #b300ff);
+      box-shadow: 0 10px 25px rgba(179,0,255,.25);
+      flex: 1 1 240px;
+    }
+    button:active{ transform: translateY(1px); }
+    button[disabled]{
+      opacity:.6;
+      cursor:not-allowed;
+      transform:none;
+    }
+
+    .btn-secondary{
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow:none;
+      font-size:16px;
+    }
+
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.18);
+      font-size: 14px;
+      user-select:none;
+      flex: 1 1 240px;
+    }
+    .toggle input{ transform: scale(1.15); }
+
+    .cartas{
+      display:flex;
+      gap:18px;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin-top:18px;
+      min-height: 240px;
+    }
+
+    .carta{
+      width: 190px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-sizing:border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .carta::before{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      background: radial-gradient(circle, rgba(122,0,255,.12), transparent 60%);
+      opacity:.0;
+      transition: opacity .35s ease;
+      pointer-events:none;
+    }
+    .carta:hover::before{ opacity:.8; }
+
+    .carta img{
+      width: 140px;
+      height:auto;
+      border-radius: 10px;
+      display:block;
+      margin: 0 auto 10px;
+      transition: transform .45s ease, filter .45s ease;
+    }
+
+    /* invertida */
+    .invertida{ transform: rotate(180deg); }
+
+    /* aura / glow */
+    .glow{
+      filter: drop-shadow(0 0 18px rgba(179,0,255,.45));
+    }
+
+    .glow-strong{
+      filter: drop-shadow(0 0 28px rgba(255,80,180,.55));
+    }
+
+    .nombre{
+      font-weight: 800;
+      font-size: 14px;
+      margin: 6px 0 4px;
+    }
+
+    .badge{
+      font-size:12px;
+      opacity:.85;
+    }
+
+    #lectura{
+      margin: 20px auto 0;
+      max-width: 900px;
+      text-align:left;
+      font-size: 18px;
+      line-height: 1.55;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      white-space: pre-wrap;
+      min-height: 140px;
+      box-sizing:border-box;
+      position: relative;
+    }
+
+    .nota{
+      margin-top:10px;
+      font-size: 12px;
+      opacity: .75;
+    }
+
+    /* ====== Animación “barajar” ====== */
+    .deck-area{
+      display:flex;
+      justify-content:center;
+      margin-top: 6px;
+      min-height: 0px;
+    }
+
+    .deck{
+      width: 160px;
+      height: 230px;
+      border-radius: 16px;
+      position: relative;
+      margin: 8px 0 2px;
+      display:none;
+    }
+
+    .deck.show{ display:block; }
+
+    .deck .back{
+      position:absolute;
+      inset:0;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(122,0,255,.55), rgba(179,0,255,.25));
+      border: 1px solid rgba(255,255,255,.22);
+      box-shadow: 0 20px 40px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+
+    .deck .back::before{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      background: radial-gradient(circle, rgba(255,255,255,.14), transparent 55%);
+      transform: rotate(12deg);
+    }
+
+    .deck .back::after{
+      content:"✦";
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      font-size: 44px;
+      opacity:.55;
+      text-shadow: 0 0 18px rgba(255,255,255,.18);
+    }
+
+    .deck .back.shadow1{ transform: translate(8px, 8px); opacity:.55; filter: blur(.2px); }
+    .deck .back.shadow2{ transform: translate(4px, 4px); opacity:.75; }
+
+    @keyframes shuffleWiggle {
+      0%   { transform: translateX(0) rotate(0deg); }
+      15%  { transform: translateX(-8px) rotate(-1.6deg); }
+      30%  { transform: translateX(8px) rotate(1.6deg); }
+      45%  { transform: translateX(-6px) rotate(-1.2deg); }
+      60%  { transform: translateX(6px) rotate(1.2deg); }
+      75%  { transform: translateX(-3px) rotate(-.6deg); }
+      100% { transform: translateX(0) rotate(0deg); }
+    }
+    .deck.shuffling{ animation: shuffleWiggle 2.0s ease-in-out; }
+
+    /* mini “brillos” */
+    @keyframes spark {
+      0%{ opacity:0; transform: translateY(8px) scale(.9); }
+      30%{ opacity:.9; }
+      100%{ opacity:0; transform: translateY(-18px) scale(1.05); }
+    }
+    .spark{
+      position:absolute;
+      left: 50%;
+      top: 12px;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,.85);
+      text-shadow: 0 0 14px rgba(179,0,255,.55);
+      font-size: 14px;
+      opacity:0;
+      pointer-events:none;
+    }
+    .deck.shuffling .spark{
+      opacity:1;
+      animation: spark 1.2s ease-in-out;
+    }
+
+    /* Mensaje temporal arriba de lectura */
+    .status{
+      font-size: 13px;
+      opacity: .78;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <h1>🔮 Oraculo Privado</h1>
+
+    <div class="panel">
+      <div class="row">
+        <div>
+          <label for="tipo">Tema de la lectura</label>
+          <select id="tipo">
+            <option value="general">General</option>
+            <option value="amor">Amor ❤️</option>
+            <option value="dinero">Dinero 💰</option>
+            <option value="trabajo">Trabajo 💼</option>
+            <option value="salud">Salud 🧘</option>
+            <option value="familia">Familia 🏠</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="btnTirar">Tirar 3 cartas</button>
+        <button id="btnCopiar" class="btn-secondary" disabled>Copiar lectura</button>
+
+        <div class="toggle">
+          <input id="sonido" type="checkbox" checked />
+          <label for="sonido" style="margin:0; font-weight:700;">Sonido místico</label>
+        </div>
+      </div>
+
+      <div class="nota">⚠️ Tarot es para entretenimiento/auto-reflexión. No reemplaza consejo profesional.</div>
+      <div class="status" id="status"></div>
+
+      <div class="deck-area">
+        <div class="deck" id="deck">
+          <div class="back shadow1"></div>
+          <div class="back shadow2"></div>
+          <div class="back"></div>
+          <div class="spark">✦ ✧ ✦</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cartas" id="cartas"></div>
+    <div id="lectura">✨ Aquí aparecerá tu lectura…</div>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ✅ URL fija del Worker (usuario final NO la ve)
+    const ENDPOINT_FIJO = "https://tarotia.egalavo00.workers.dev";
+
+    const $ = (id) => document.getElementById(id);
+
+    // =========================
+    // 1) BARAJA 78 CARTAS
+    // =========================
+    function fileUrl(fileName, width){
+      var w = width || 350;
+      return "https://commons.wikimedia.org/wiki/Special:FilePath/" + encodeURIComponent(fileName) + "?width=" + w;
+    }
+
+    function buildDeck(){
+      var deck = [];
+
+      // --- Mayores (22) ---
+      var majors = [
+        {n:0,  es:"El Loco", file:"RWS Tarot 00 Fool.jpg", up:"inicios, libertad, fe", rev:"impulsividad, riesgo, caos"},
+        {n:1,  es:"El Mago", file:"RWS Tarot 01 Magician.jpg", up:"manifestación, habilidad, acción", rev:"engaño, bloqueo, dispersión"},
+        {n:2,  es:"La Sacerdotisa", file:"RWS Tarot 02 High Priestess.jpg", up:"intuición, secretos, sabiduría", rev:"confusión, desconexión, señales ignoradas"},
+        {n:3,  es:"La Emperatriz", file:"RWS Tarot 03 Empress.jpg", up:"abundancia, creación, cuidado", rev:"estancamiento, dependencia, exceso"},
+        {n:4,  es:"El Emperador", file:"RWS Tarot 04 Emperor.jpg", up:"estructura, control, estabilidad", rev:"rigidez, autoritarismo, miedo"},
+        {n:5,  es:"El Hierofante", file:"RWS Tarot 05 Hierophant.jpg", up:"tradición, guía, aprendizaje", rev:"rebeldía, dogma, presión social"},
+        {n:6,  es:"Los Enamorados", file:"RWS Tarot 06 Lovers.jpg", up:"elección, unión, valores", rev:"dudas, desbalance, tentación"},
+        {n:7,  es:"El Carro", file:"RWS Tarot 07 Chariot.jpg", up:"avance, victoria, enfoque", rev:"falta de control, prisa, bloqueo"},
+        {n:8,  es:"La Fuerza", file:"RWS Tarot 08 Strength.jpg", up:"valor, calma, dominio interno", rev:"inseguridad, impulsos, debilidad"},
+        {n:9,  es:"El Ermitaño", file:"RWS Tarot 09 Hermit.jpg", up:"búsqueda, reflexión, guía interna", rev:"aislamiento, evasión, confusión"},
+        {n:10, es:"Rueda de la Fortuna", file:"RWS Tarot 10 Wheel of Fortune.jpg", up:"cambio, giro, oportunidad", rev:"resistencia, mala racha, atraso"},
+        {n:11, es:"La Justicia", file:"RWS Tarot 11 Justice.jpg", up:"verdad, equilibrio, consecuencias", rev:"injusticia, sesgo, negación"},
+        {n:12, es:"El Colgado", file:"RWS Tarot 12 Hanged Man.jpg", up:"pausa, nueva mirada, rendición", rev:"bloqueo, sacrificio inútil, estancamiento"},
+        {n:13, es:"La Muerte", file:"RWS Tarot 13 Death.jpg", up:"transformación, cierre, renacer", rev:"apego, miedo al cambio, repetición"},
+        {n:14, es:"La Templanza", file:"RWS Tarot 14 Temperance.jpg", up:"armonía, paciencia, sanación", rev:"excesos, desorden, prisa"},
+        {n:15, es:"El Diablo", file:"RWS Tarot 15 Devil.jpg", up:"apegos, deseo, tentación", rev:"liberación, conciencia, corte"},
+        {n:16, es:"La Torre", file:"RWS Tarot 16 Tower.jpg", up:"ruptura, revelación, sacudida", rev:"evitar cambio, tensión, postergar"},
+        {n:17, es:"La Estrella", file:"RWS Tarot 17 Star.jpg", up:"esperanza, guía, renovación", rev:"duda, baja fe, desaliento"},
+        {n:18, es:"La Luna", file:"RWS Tarot 18 Moon.jpg", up:"intuición, sombras, incertidumbre", rev:"claridad, verdad, despertar"},
+        {n:19, es:"El Sol", file:"RWS Tarot 19 Sun.jpg", up:"éxito, alegría, claridad", rev:"retraso, exceso de ego, nube pasajera"},
+        {n:20, es:"El Juicio", file:"RWS Tarot 20 Judgement.jpg", up:"llamado, evaluación, renacer", rev:"culpa, miedo, no escuchar"},
+        {n:21, es:"El Mundo", file:"RWS Tarot 21 World.jpg", up:"cierre, logro, integración", rev:"pendiente, ciclo incompleto, demora"}
+      ];
+
+      for (var i=0;i<majors.length;i++){
+        deck.push({
+          id: "MAJ-" + majors[i].n,
+          arcana: "Mayor",
+          suit: null,
+          rank: majors[i].n,
+          name: majors[i].es,
+          file: majors[i].file,
+          upright: majors[i].up,
+          reversed: majors[i].rev
+        });
+      }
+
+      // --- Menores (56) ---
+      var suits = [
+        {key:"Wands",  es:"Bastos", up:"acción, energía, iniciativa", rev:"bloqueo, impulsividad, desgaste"},
+        {key:"Cups",   es:"Copas",  up:"emociones, amor, intuición",  rev:"desborde emocional, apego, confusión"},
+        {key:"Swords", es:"Espadas",up:"mente, decisión, verdad",     rev:"ansiedad, conflicto, autoengaño"},
+        {key:"Pents",  es:"Oros",   up:"dinero, materia, trabajo",    rev:"inseguridad, pérdidas, estancamiento"}
+      ];
+
+      var ranks = [
+        {n:1,  es:"As",        up:"inicio, oportunidad",               rev:"bloqueo, oportunidad perdida"},
+        {n:2,  es:"Dos",       up:"elección, equilibrio",              rev:"indecisión, tensión"},
+        {n:3,  es:"Tres",      up:"crecimiento, colaboración",         rev:"retrasos, fricción"},
+        {n:4,  es:"Cuatro",    up:"base, estabilidad",                 rev:"rigidez, estancamiento"},
+        {n:5,  es:"Cinco",     up:"reto, prueba",                      rev:"aprendizaje, salida"},
+        {n:6,  es:"Seis",      up:"progreso, transición",              rev:"resistencia, carga"},
+        {n:7,  es:"Siete",     up:"estrategia, perseverancia",         rev:"distracción, mal plan"},
+        {n:8,  es:"Ocho",      up:"movimiento, práctica",              rev:"bloqueo, lentitud"},
+        {n:9,  es:"Nueve",     up:"culminación, intensidad",           rev:"miedo, agotamiento"},
+        {n:10, es:"Diez",      up:"resultado, cierre",                 rev:"soltar, alivio"},
+        {n:11, es:"Paje",      up:"mensaje, curiosidad",               rev:"inmadurez, falta de rumbo"},
+        {n:12, es:"Caballero", up:"impulso, acción",                   rev:"prisa, choque"},
+        {n:13, es:"Reina",     up:"madurez, intuición",                rev:"inseguridad, control"},
+        {n:14, es:"Rey",       up:"liderazgo, maestría",               rev:"ego, terquedad"}
+      ];
+
+      for (var s=0; s<suits.length; s++){
+        for (var r=0; r<ranks.length; r++){
+          var num = ranks[r].n < 10 ? "0" + ranks[r].n : "" + ranks[r].n;
+          var file = suits[s].key + num + ".jpg";
+          var displayName = ranks[r].es + " de " + suits[s].es;
+
+          deck.push({
+            id: suits[s].key + "-" + ranks[r].n,
+            arcana: "Menor",
+            suit: suits[s].es,
+            rank: ranks[r].n,
+            name: displayName,
+            file: file,
+            upright: suits[s].up + "; " + ranks[r].up,
+            reversed: suits[s].rev + "; " + ranks[r].rev
+          });
+        }
+      }
+
+      return deck;
+    }
+
+    var DECK = buildDeck();
+
+    // =========================
+    // 2) SACAR 3 CARTAS ÚNICAS
+    // =========================
+    function shuffle(arr){
+      for (var i=arr.length-1; i>0; i--){
+        var j = Math.floor(Math.random()*(i+1));
+        var tmp = arr[i]; arr[i]=arr[j]; arr[j]=tmp;
+      }
+      return arr;
+    }
+
+    function drawThree(){
+      var copy = DECK.slice();
+      shuffle(copy);
+      var picked = copy.slice(0,3);
+
+      for (var i=0; i<picked.length; i++){
+        picked[i] = Object.assign({}, picked[i]);
+        picked[i].isReversed = Math.random() < 0.5;
+        picked[i].meaning = picked[i].isReversed ? picked[i].reversed : picked[i].upright;
+        picked[i].img = fileUrl(picked[i].file, 350);
+      }
+      return picked;
+    }
+
+    function renderCards(cards){
+      var cont = $("cartas");
+      cont.innerHTML = "";
+
+      for (var i=0; i<cards.length; i++){
+        var c = cards[i];
+
+        var card = document.createElement("div");
+        card.className = "carta";
+
+        var img = document.createElement("img");
+        img.src = c.img;
+        img.alt = c.name;
+        if (c.isReversed) img.classList.add("invertida");
+
+        // Aura: normal glow / invertida glow-strong
+        img.classList.add("glow");
+        if (c.isReversed) img.classList.add("glow-strong");
+
+        var nombre = document.createElement("div");
+        nombre.className = "nombre";
+        nombre.textContent = c.name;
+
+        var badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = c.isReversed ? "Invertida 🔄" : "Normal ✅";
+
+        card.appendChild(img);
+        card.appendChild(nombre);
+        card.appendChild(badge);
+        cont.appendChild(card);
+      }
+    }
+
+    // =========================
+    // 3) TYPEWRITER (ARREGLADO)
+    // =========================
+    let _twTimer = null;
+    function typeWriter(text, el, speed){
+      if (_twTimer) clearInterval(_twTimer);
+      el.textContent = "";
+      let i = 0;
+      _twTimer = setInterval(() => {
+        el.textContent += text.charAt(i);
+        i++;
+        if (i >= text.length) {
+          clearInterval(_twTimer);
+          _twTimer = null;
+        }
+      }, speed || 18);
+    }
+
+    // =========================
+    // 4) SONIDO MÍSTICO (sin mp3)
+    // =========================
+    let _audioCtx = null;
+
+    function sonidoMistico(){
+      if (!$("sonido").checked) return;
+
+      try{
+        if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        const ctx = _audioCtx;
+        const now = ctx.currentTime;
+
+        // “Campanita” simple: 2 tonos con decay
+        const tones = [
+          { f: 659.25, t: 0.00, d: 0.18 }, // E5
+          { f: 987.77, t: 0.08, d: 0.22 }  // B5
+        ];
+
+        tones.forEach((x) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+
+          o.type = "sine";
+          o.frequency.setValueAtTime(x.f, now + x.t);
+
+          g.gain.setValueAtTime(0.0001, now + x.t);
+          g.gain.exponentialRampToValueAtTime(0.18, now + x.t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + x.t + x.d);
+
+          o.connect(g);
+          g.connect(ctx.destination);
+
+          o.start(now + x.t);
+          o.stop(now + x.t + x.d + 0.02);
+        });
+
+      } catch(e){
+        // Si el navegador bloquea audio, simplemente no suena (no rompe nada)
+        console.log("Audio no disponible:", e.message);
+      }
+    }
+
+    // =========================
+    // 5) PEDIR LECTURA A TU WORKER (IA)
+    // =========================
+    async function pedirLecturaIA(endpoint, tipo, cards){
+      var payload = {
+        tipo: tipo,
+        cartas: [
+          {pos:"Pasado",  nombre: cards[0].name, invertida: cards[0].isReversed, significado: cards[0].meaning},
+          {pos:"Presente",nombre: cards[1].name, invertida: cards[1].isReversed, significado: cards[1].meaning},
+          {pos:"Futuro",  nombre: cards[2].name, invertida: cards[2].isReversed, significado: cards[2].meaning}
+        ]
+      };
+
+      var res = await fetch(endpoint.replace(/\/$/, "") + "/reading", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok){
+        var t = await res.text();
+        throw new Error("Backend respondió " + res.status + ": " + t);
+      }
+
+      var data = await res.json();
+      return data.text;
+    }
+
+    // =========================
+    // 6) EFECTO BARAJAR + REVELAR
+    // =========================
+    function setStatus(msg){
+      $("status").textContent = msg || "";
+    }
+
+    function showDeck(show){
+      const deck = $("deck");
+      if (show) deck.classList.add("show");
+      else deck.classList.remove("show");
+    }
+
+    function shuffleAnimation(){
+      return new Promise((resolve) => {
+        const deck = $("deck");
+        showDeck(true);
+        deck.classList.add("shuffling");
+
+        // Sonidito al iniciar
+        sonidoMistico();
+
+        setTimeout(() => {
+          deck.classList.remove("shuffling");
+          showDeck(false);
+          resolve();
+        }, 1200);
+      });
+    }
+
+    // =========================
+    // 7) BOTÓN COPIAR LECTURA
+    // =========================
+    async function copiarLectura(){
+      const texto = $("lectura").textContent.trim();
+      if (!texto) return;
+
+      try{
+        await navigator.clipboard.writeText(texto);
+        setStatus("✅ Lectura copiada al portapapeles.");
+        setTimeout(() => setStatus(""), 2000);
+      } catch(e){
+        // Fallback si clipboard falla
+        setStatus("⚠️ No se pudo copiar automáticamente. Selecciona y copia manualmente.");
+        setTimeout(() => setStatus(""), 2500);
+      }
+    }
+
+    // =========================
+    // 8) TIRAR
+    // =========================
+    async function tirar(){
+      const lecturaEl = $("lectura");
+      const btnTirar = $("btnTirar");
+      const btnCopiar = $("btnCopiar");
+
+      try{
+        btnTirar.disabled = true;
+        btnCopiar.disabled = true;
+        setStatus("");
+
+        var tipo = $("tipo").value;
+        var endpoint = ENDPOINT_FIJO;
+
+        // Limpia y prepara
+        $("cartas").innerHTML = "";
+        typeWriter("🔮 Preparando la energía…", lecturaEl, 16);
+
+        // 1) Barajar (animación)
+        await shuffleAnimation();
+
+        // 2) Sacar cartas y mostrar
+        const cards = drawThree();
+        renderCards(cards);
+
+        // 3) IA
+        typeWriter("✨ Leyendo el mensaje…", lecturaEl, 16);
+        const textoIA = await pedirLecturaIA(endpoint, tipo, cards);
+
+        // 4) Mostrar lectura
+        typeWriter(textoIA, lecturaEl, 13);
+
+        btnCopiar.disabled = false;
+        setStatus("✨ Lista. Puedes copiar la lectura si quieres.");
+
+      } catch(e){
+        if (_twTimer) clearInterval(_twTimer);
+        _twTimer = null;
+        lecturaEl.textContent = "❌ Error: " + e.message;
+        console.error(e);
+        setStatus("⚠️ Hubo un error. Intenta otra vez.");
+      } finally {
+        btnTirar.disabled = false;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function(){
+      $("btnTirar").addEventListener("click", tirar);
+      $("btnCopiar").addEventListener("click", copiarLectura);
+    });
+  </script>
+</body>
+</html>
+``
