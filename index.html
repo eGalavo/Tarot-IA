@@ -277,7 +277,7 @@
       75%  { transform: translateX(-3px) rotate(-.6deg); }
       100% { transform: translateX(0) rotate(0deg); }
     }
-    .deck.shuffling{ animation: shuffleWiggle 2.0s ease-in-out; }
+    .deck.shuffling{ animation: shuffleWiggle 1.2s ease-in-out; }
 
     /* mini “brillos” */
     @keyframes spark {
@@ -298,7 +298,7 @@
     }
     .deck.shuffling .spark{
       opacity:1;
-      animation: spark 1.2s ease-in-out;
+      animation: spark 3.0s ease-in-out;
     }
 
     /* Mensaje temporal arriba de lectura */
@@ -333,10 +333,8 @@
         <button id="btnTirar">Tirar 3 cartas</button>
         <button id="btnCopiar" class="btn-secondary" disabled>Copiar lectura</button>
 
-        <div class="toggle">
-          <input id="sonido" type="checkbox" checked />
-          <label for="sonido" style="margin:0; font-weight:700;">Sonido místico</label>
-        </div>
+        <!-- ✅ Música ON por defecto -->
+        <button id="btnMusica" class="btn-secondary" type="button">Música: ON</button>
       </div>
 
       <div class="nota">⚠️ Tarot es para entretenimiento/auto-reflexión. No reemplaza consejo profesional.</div>
@@ -356,6 +354,9 @@
     <div id="lectura">✨ Aquí aparecerá tu lectura…</div>
   </div>
 
+  <!-- ✅ Música de fondo -->
+  <audio id="bgm" src="audio/bg.mp3" loop preload="auto"></audio>
+
   <script>
     "use strict";
 
@@ -363,6 +364,54 @@
     const ENDPOINT_FIJO = "https://tarotia.egalavo00.workers.dev";
 
     const $ = (id) => document.getElementById(id);
+
+    // =========================
+    // ✅ MÚSICA DE FONDO (MP3) - ON por defecto
+    // =========================
+    const bgm = document.getElementById("bgm");
+    const btnMusica = document.getElementById("btnMusica");
+
+    bgm.volume = 0.18;
+
+    // ON por defecto:
+    // Si no existe preferencia guardada, lo ponemos en true.
+    let musicaActivaLS = localStorage.getItem("musicaActiva");
+    let musicaActiva = (musicaActivaLS === null) ? true : (musicaActivaLS === "true");
+    if (musicaActivaLS === null) localStorage.setItem("musicaActiva", "true");
+
+    actualizarUIMusica();
+
+    function actualizarUIMusica(){
+      btnMusica.textContent = musicaActiva ? "Música: ON" : "Música: OFF";
+    }
+
+    async function playBGM(){
+      try{
+        await bgm.play();
+      } catch(e){
+        console.log("Autoplay bloqueado. Se iniciará con interacción.", e.message);
+      }
+    }
+
+    function stopBGM(){
+      bgm.pause();
+      bgm.currentTime = 0; // ✅ reinicio automático al apagar
+    }
+
+    btnMusica.addEventListener("click", async () => {
+      musicaActiva = !musicaActiva;
+      localStorage.setItem("musicaActiva", musicaActiva ? "true" : "false");
+
+      if (musicaActiva) await playBGM();
+      else stopBGM();
+
+      actualizarUIMusica();
+    });
+
+    // Intentar iniciar en la PRIMERA interacción en la página (click/tap)
+    document.addEventListener("pointerdown", async () => {
+      if (musicaActiva && bgm.paused) await playBGM();
+    }, { once: true });
 
     // =========================
     // 1) BARAJA 78 CARTAS
@@ -503,7 +552,6 @@
         img.alt = c.name;
         if (c.isReversed) img.classList.add("invertida");
 
-        // Aura: normal glow / invertida glow-strong
         img.classList.add("glow");
         if (c.isReversed) img.classList.add("glow-strong");
 
@@ -541,23 +589,20 @@
     }
 
     // =========================
-    // 4) SONIDO MÍSTICO (sin mp3)
+    // 4) SONIDO MÍSTICO (sin mp3) - SIEMPRE ACTIVO (sin toggle)
     // =========================
     let _audioCtx = null;
 
     function sonidoMistico(){
-      if (!$("sonido").checked) return;
-
       try{
         if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         const ctx = _audioCtx;
         const now = ctx.currentTime;
 
-        // “Campanita” simple: 2 tonos con decay
         const tones = [
-          { f: 659.25, t: 0.00, d: 0.18 }, // E5
-          { f: 987.77, t: 0.08, d: 0.22 }  // B5
+          { f: 659.25, t: 0.00, d: 0.18 },
+          { f: 987.77, t: 0.08, d: 0.22 }
         ];
 
         tones.forEach((x) => {
@@ -579,7 +624,6 @@
         });
 
       } catch(e){
-        // Si el navegador bloquea audio, simplemente no suena (no rompe nada)
         console.log("Audio no disponible:", e.message);
       }
     }
@@ -631,7 +675,7 @@
         showDeck(true);
         deck.classList.add("shuffling");
 
-        // Sonidito al iniciar
+        // Sonidito al iniciar (SIEMPRE)
         sonidoMistico();
 
         setTimeout(() => {
@@ -654,7 +698,6 @@
         setStatus("✅ Lectura copiada al portapapeles.");
         setTimeout(() => setStatus(""), 2000);
       } catch(e){
-        // Fallback si clipboard falla
         setStatus("⚠️ No se pudo copiar automáticamente. Selecciona y copia manualmente.");
         setTimeout(() => setStatus(""), 2500);
       }
@@ -673,25 +716,25 @@
         btnCopiar.disabled = true;
         setStatus("");
 
+        // ✅ si la música está ON, intenta iniciar (ya hubo interacción al dar click)
+        if (musicaActiva && bgm.paused) {
+          await playBGM();
+        }
+
         var tipo = $("tipo").value;
         var endpoint = ENDPOINT_FIJO;
 
-        // Limpia y prepara
         $("cartas").innerHTML = "";
         typeWriter("🔮 Preparando la energía…", lecturaEl, 16);
 
-        // 1) Barajar (animación)
         await shuffleAnimation();
 
-        // 2) Sacar cartas y mostrar
         const cards = drawThree();
         renderCards(cards);
 
-        // 3) IA
         typeWriter("✨ Leyendo el mensaje…", lecturaEl, 16);
         const textoIA = await pedirLecturaIA(endpoint, tipo, cards);
 
-        // 4) Mostrar lectura
         typeWriter(textoIA, lecturaEl, 13);
 
         btnCopiar.disabled = false;
@@ -715,4 +758,3 @@
   </script>
 </body>
 </html>
-``
