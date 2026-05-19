@@ -387,13 +387,15 @@
       btnMusica.textContent = musicaActiva ? "Música: ON" : "Música: OFF";
     }
 
-    async function playBGM(){
-      try{
-        await bgm.play();
-      } catch(e){
-        console.log("Autoplay bloqueado. Se iniciará con interacción.", e.message);
-      }
-    }
+async function playBGM(){
+  try{
+    bgm.load();            // ✅ fuerza a recargar la fuente
+    await bgm.play();
+  } catch(e){
+    console.log("No se pudo iniciar música:", e.message);
+  }
+}
+
 
     function stopBGM(){
       bgm.pause();
